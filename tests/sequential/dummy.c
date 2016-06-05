@@ -1,6 +1,6 @@
-#include "solution.h"
+#include <stdio.h>
 
-int solution (int argc, char* argv[])
+int main (int argc, char* argv[])
 {
 	int i, j, k = 0, m = 0;
 
@@ -11,4 +11,6 @@ int solution (int argc, char* argv[])
 		if ((m+1) % 2 > m) m++;
 		else m--;
 	}
+
+	return 0;
 }

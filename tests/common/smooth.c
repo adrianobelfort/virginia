@@ -1,14 +1,40 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <omp.h>
+#include <time.h>
 #include "solution.h"
+
+void getTime(struct timespec* timestamp)
+{
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, timestamp);
+}
+
+unsigned long long int timeDifference(struct timespec end, struct timespec start)
+{
+	long int secondsTime, nanoTime;
+	long int BILLION = 1000000000;
+	unsigned long long int wideTime;
+
+	secondsTime = end.tv_sec - start.tv_sec;
+	nanoTime = end.tv_nsec - start.tv_nsec;
+
+	if (nanoTime < 0)
+	{
+		nanoTime = BILLION + nanoTime;
+		secondsTime = secondsTime - 1;
+	}
+
+	wideTime = secondsTime * BILLION + nanoTime;
+
+	return wideTime;
+}
 
 int main (int argc, char* argv[])
 {
-    double timeElapsed;
+    unsigned long long int timeElapsed;
     char *dot, *slash, inputFilename[256], outputFilename[256], **newArgv;
     int i, result;
+	struct timespec start, end;
 
     if (argc < 3)
     {
@@ -16,7 +42,7 @@ int main (int argc, char* argv[])
         return 1;
     }
 
-    // Isolate the name of the input file by removing path trail and extension
+    // Isolate the name of the input file by removing path tail and extension
     slash = strrchr(argv[1], '/');
     if (slash != NULL)
     {
@@ -51,15 +77,17 @@ int main (int argc, char* argv[])
 
     // Solution usage: ./solution input_file output_file
 
-    timeElapsed = omp_get_wtime();
+	getTime(&start);
 
     /****************************** SOLUTION ******************************************/
     result = solution(argc, newArgv);
     /*************************** END OF SOLUTION ***************************/
 
-    timeElapsed = omp_get_wtime() - timeElapsed;
+	getTime(&end);
 
-    printf("%s %lf\n", argv[1], timeElapsed);
+    timeElapsed = timeDifference(end, start);
+
+    printf("%s %llu\n", argv[1], timeElapsed);
 
     for (i = 0; i < 3; i++) free(newArgv[i]);
     free(newArgv);
