@@ -6,7 +6,6 @@
 
 void getTime(struct timespec* timestamp)
 {
-	//clock_gettime(CLOCK_PROCESS_CPUTIME_ID, timestamp);
 	clock_gettime(CLOCK_REALTIME, timestamp);
 }
 
@@ -33,7 +32,7 @@ unsigned long long int timeDifference(struct timespec end, struct timespec start
 FILE* openFileWithExtension(char* filename, char* extension, char* mode)
 {
     FILE* filePointer;
-    char fullname[50];
+    char fullname[256];
 
     strcpy(fullname, filename);
     strcat(fullname, extension);
@@ -57,7 +56,6 @@ int fileOpenError(FILE* filePointer)
 {
     if (filePointer == NULL)
     {
-        printf("Unable to open file\n");
         return 1;
     }
     else
@@ -83,7 +81,7 @@ static char args_doc[] = "programs-and-arguments";
 static struct argp_option options[] = {
 /* long name | character | value | option flag | description */
 
-    {"track-time", 'r', 0, 0, "Keeps record of the execution time"},
+    {"track-time", 'r', "LOG-FILE", 0, "Log the execution time in nanoseconds to the specified log file"},
     {"test", 't', "TEST-CASE", 0, "Run the program with input coming from a test case file"},
 	{"verbose", 'v', 0, 0, "Print detailed information for debugging purposes"},
 
@@ -96,6 +94,7 @@ struct arguments
     char *testCaseName,         // --test -t
          **userProgram,         // programs-and-arguments
          trackTime,             // --track-time -r
+		 *timeLogFilename,
 		 verbose;
 };
 
@@ -112,6 +111,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
     {
         case 'r':
             arguments->trackTime = 1;
+			arguments->timeLogFilename = arg;
             break;
         case 't':
             arguments->testCaseName = arg;
@@ -154,6 +154,7 @@ void initializeArguments(struct arguments* arguments)
 	/* Default values for the arguments */
 	arguments->trackTime = 0;
 	arguments->testCaseName = NULL;
+	arguments->timeLogFilename = NULL;
 	arguments->verbose = 0;
 }
 
@@ -183,6 +184,8 @@ int main (int argc, char* argv[])
 	unsigned long long int timeElapsed;
 	struct timespec start, end;
 
+	FILE* timeLogFile;
+
 	char command[512];
 
 	initializeArguments(&arguments);
@@ -200,8 +203,16 @@ int main (int argc, char* argv[])
 		}
 		printf("\n");
 		printf("Track time? %s\n", arguments.trackTime ? "yes" : "no");
+		if (arguments.trackTime)
+		{
+			printf("Write to file %s\n", arguments.timeLogFilename);
+		}
 		printf("Verbose? %s\n", arguments.verbose ? "yes" : "no");
-		printf("With test case: %s\n", arguments.testCaseName);
+		printf("Has test case? %s\n", arguments.testCaseName != NULL ? "yes" : "no")
+		if (arguments.testCaseName)
+		{
+			printf("Test case name: %s\n", arguments.testCaseName);
+		}
 	}
 
 	reduceStrings(command, arguments.userProgram);
@@ -210,17 +221,28 @@ int main (int argc, char* argv[])
 
 	getTime(&start);
 
-    /****************************** SOLUTION ******************************************/
+    /****************************** SOLUTION *******************************/
     system(command);
     /*************************** END OF SOLUTION ***************************/
 
 	getTime(&end);
 
-    timeElapsed = timeDifference(end, start);
-
 	if (arguments.trackTime)
 	{
-    	printf("%s %llu\n", argv[1], timeElapsed);
+		timeElapsed = timeDifference(end, start);
+
+		timeLogFile = openFile(arguments.timeLogFilename, "a+");
+
+		if (!fileOpenError(timeLogFile))
+		{
+			fprintf(timeLogFile, "%llu\n", timeElapsed);
+
+			closeFile(timeLogFile);
+		}
+		else
+		{
+			fprintf(stderr, "Error: could not open log file %s\n", arguments.timeLogFilename);
+		}
 	}
 
     return 0;
