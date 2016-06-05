@@ -81,8 +81,9 @@ static char args_doc[] = "programs-and-arguments";
 static struct argp_option options[] = {
 /* long name | character | value | option flag | description */
 
-    {"track-time", 'r', "LOG-FILE", 0, "Log the execution time in nanoseconds to the specified log file"},
-    {"test", 't', "TEST-CASE", 0, "Run the program with input coming from a test case file"},
+    {"log-time", 'l', "LOG-FILE", 0, "Log the execution time in nanoseconds to the specified log file"},
+    {"input", 'i', "TEST-CASE", 0, "Run the program with input coming from a test case file"},
+	{"tag", 't', "TAG", 0, "Adds a tag to the execution"},
 	{"verbose", 'v', 0, 0, "Print detailed information for debugging purposes"},
 
     {0}
@@ -93,9 +94,11 @@ struct arguments
 {
     char *testCaseName,         // --test -t
          **userProgram,         // programs-and-arguments
-         trackTime,             // --track-time -r
-		 *timeLogFilename,
-		 verbose;
+         trackTime,             // --log-time -l
+		 *timeLogFilename,		// log-time argument
+		 *executionTag,			// --tag -t
+		 verbose;				// --verbose -v
+		 // add case o
 };
 
 /* Parse a single option */
@@ -109,16 +112,20 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
         what we get as key  */
     switch (key)
     {
-        case 'r':
+        case 'l':
             arguments->trackTime = 1;
 			arguments->timeLogFilename = arg;
             break;
-        case 't':
+        case 'i':
             arguments->testCaseName = arg;
             break;
 		case 'v':
 			arguments->verbose = 1;
 			break;
+		case 't':
+			arguments->executionTag = arg;
+			break;
+		// case o
 
 		case ARGP_KEY_NO_ARGS:
 			argp_usage(state);
@@ -155,7 +162,9 @@ void initializeArguments(struct arguments* arguments)
 	arguments->trackTime = 0;
 	arguments->testCaseName = NULL;
 	arguments->timeLogFilename = NULL;
+	arguments->executionTag = NULL;
 	arguments->verbose = 0;
+	// add output
 }
 
 /* Definition of our argp parser */
@@ -208,10 +217,14 @@ int main (int argc, char* argv[])
 			printf("Write to file %s\n", arguments.timeLogFilename);
 		}
 		printf("Verbose? %s\n", arguments.verbose ? "yes" : "no");
-		printf("Has test case? %s\n", arguments.testCaseName != NULL ? "yes" : "no")
+		printf("Has test case? %s\n", arguments.testCaseName != NULL ? "yes" : "no");
 		if (arguments.testCaseName)
 		{
 			printf("Test case name: %s\n", arguments.testCaseName);
+		}
+		if (arguments.executionTag)
+		{
+			printf("Execution tag: %s\n", arguments.executionTag);
 		}
 	}
 
@@ -222,7 +235,7 @@ int main (int argc, char* argv[])
 	getTime(&start);
 
     /****************************** SOLUTION *******************************/
-    system(command);
+	system(command);
     /*************************** END OF SOLUTION ***************************/
 
 	getTime(&end);
@@ -235,6 +248,10 @@ int main (int argc, char* argv[])
 
 		if (!fileOpenError(timeLogFile))
 		{
+			if (arguments.executionTag)
+			{
+				fprintf(timeLogFile, "%s ", arguments.executionTag);
+			}
 			fprintf(timeLogFile, "%llu\n", timeElapsed);
 
 			closeFile(timeLogFile);
