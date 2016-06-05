@@ -1,44 +1,31 @@
 #!/bin/bash
 
-echo Executing sequential tests
-#echo ""
+# Run instructions
 
-for filename in test/*.in;
-do
-    echo -e "\t$filename"
-    sequential/smooth $filename sequential >> stats/sequentialMetrics.mtr
-done
-
+echo "@@@ VIRGINIA SCRIPT @@@"
 echo ""
-echo Executing parallel tests
-#echo ""
 
-for filename in test/*.in;
+cd program/
+
+# Source address (ijk)
+for i in `seq 0 1`;
 do
-    echo -e "\t$filename"
-    parallel/smoothparallel $filename parallel >> stats/parallelMetrics.mtr
+	for j in `seq 0 1`;
+	do
+		for k in `seq 0 1`;
+		do
+			# Target address (xyz)
+			for x in `seq 0 1`;
+			do
+				for y in `seq 0 1`;
+				do
+					for z in `seq 0 1`;
+					do
+						../virginia -t $i$j$k-$x$y$z -o ../outputs/$i$j$k-$x$y$z.out erl -run omega main 8 $i$j$k $x$y$z -run init stop -noshell
+						echo ""
+					done
+				done
+			done
+		done
+	done
 done
-
-#mv test/*.out parallel/
-
-echo ""
-echo Scanning for output differences...
-
-for sequentialResult in $(find sequential/ -name '*.out');
-do
-    sfname=$(basename $sequentialResult)
-    #echo $sfname
-
-    for parallelResult in $(find parallel/ -name '*.out');
-    do
-        pfname=$(basename $parallelResult)
-        #echo $pfname
-
-        if [ "$sfname" = "$pfname" ];
-        then
-            diff $sequentialResult $parallelResult
-        fi
-    done
-done
-
-echo ""

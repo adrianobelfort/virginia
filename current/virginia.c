@@ -87,6 +87,7 @@ static struct argp_option options[] = {
 	{"tag", 't', "TAG", 0, "Adds a tag to the execution"},
 	{"output", 'o', "OUTPUT-FILE", 0, "Redirect the output to the specified file"},
 	{"verbose", 'v', 0, 0, "Print detailed information for debugging purposes"},
+	{"laconic", 'e', 0, 0, "Print only the most important details"},
 
     {0}
 };
@@ -103,6 +104,7 @@ struct arguments
 		 *inputFilename,		// --input -i
 		 redirectOutput, 		// --output -o
 		 *outputFilename,		// --output -o
+		 laconic,
 		 verbose;				// --verbose -v
 		 // add case o
 };
@@ -134,6 +136,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 			break;
 		case 't':
 			arguments->executionTag = arg;
+			break;
+		case 'e':
+			arguments->laconic = 1;
 			break;
 		case 'o':
 			arguments->redirectOutput = 1;
@@ -181,6 +186,7 @@ void initializeArguments(struct arguments* arguments)
 	arguments->redirectOutput = 0;
 	arguments->outputFilename = NULL;
 	arguments->verbose = 0;
+	arguments->laconic = 0;
 }
 
 /* Definition of our argp parser */
@@ -270,26 +276,43 @@ int main (int argc, char* argv[])
 
 /************************** PROGRAM START *******************************/
 
-	printf("\n");
-	printf("@ Virginia, a simple, configurable test framework\n");
-	printf("@ 2016-2016 by Adriano Belfort\n");
-	printf("@ Command: %s\n", command);
+	if (!arguments.laconic)
+	{
+		printf("\n");
+		printf("@ Virginia, a simple, configurable test framework\n");
+		printf("@ 2016-2016 by Adriano Belfort\n");
+		printf("@\n");
+		if (arguments.executionTag)
+		{
+			printf("@ Execution tag: %s\n", arguments.executionTag);
+		}
+		printf("@ Command: %s\n", command);
+	}
+	else
+	{
+		printf("[virginia] Running ");
+		if (arguments.executionTag)
+		{
+			printf("%s: ", arguments.executionTag);
+		}
+		printf("%s\n", command);
+	}
 
 	if (arguments.redirectInput)
 	{
-		printf("@ Redirect input from %s\n", arguments.inputFilename);
+		if (!arguments.laconic) printf("@ Redirect input from %s\n", arguments.inputFilename);
 		composeInputRedirectString(command, arguments.inputFilename);
 	}
 
 	if (arguments.redirectOutput)
 	{
-		printf("@ Redirect output to %s\n", arguments.outputFilename);
+		if (!arguments.laconic) printf("@ Redirect output to %s\n", arguments.outputFilename);
 		composeOutputRedirectString(command, arguments.outputFilename);
 	}
 
 	if (arguments.trackTime)
 	{
-		printf("@ Save execution time to %s\n", arguments.timeLogFilename);
+		if (!arguments.laconic) printf("@ Save execution time to %s\n", arguments.timeLogFilename);
 	}
 
 	if (arguments.verbose) printf("Complete input string: %s\n", command);
@@ -302,6 +325,16 @@ int main (int argc, char* argv[])
 	system(command);
     /*************************** END OF SOLUTION ***************************/
 	getTime(&end);
+
+	printf("\n");
+	if (!arguments.laconic)
+	{
+		printf("@ Finished program execution!");
+	}
+	else
+	{
+		printf("[virginia] Finished program execution\n");
+	}
 
 	if (arguments.trackTime)
 	{
