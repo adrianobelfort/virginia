@@ -66,7 +66,7 @@ int fileOpenError(FILE* filePointer)
 
 /***************************** ARGP HANDLING *******************************/
 
-const char* argp_program_version = "virginia 1.0";
+const char* argp_program_version = "virginia 1.1";
 const char* argp_program_bug_address = "<adriano.belfort@outlook.com>";
 
 /* Program documentation */
@@ -82,8 +82,10 @@ static struct argp_option options[] = {
 /* long name | character | value | option flag | description */
 
     {"log-time", 'l', "LOG-FILE", 0, "Log the execution time in nanoseconds to the specified log file"},
-    {"input", 'i', "TEST-CASE", 0, "Run the program with input coming from a test case file"},
+	{"test-case", 'c', "TEST-FILE", 0, "Run the target program with the specified file as argument"},
+    {"input", 'i', "INPUT-FILE", 0, "Run the target program with input coming from a test case file"},
 	{"tag", 't', "TAG", 0, "Adds a tag to the execution"},
+	{"output", 'o', "OUTPUT-FILE", 0, "Redirect the output to the specified file"},
 	{"verbose", 'v', 0, 0, "Print detailed information for debugging purposes"},
 
     {0}
@@ -92,11 +94,15 @@ static struct argp_option options[] = {
 /* Struct used to exchange information between parse_opt and main */
 struct arguments
 {
-    char *testCaseName,         // --test -t
+    char *testCaseName,         // --testcase -c
          **userProgram,         // programs-and-arguments
          trackTime,             // --log-time -l
 		 *timeLogFilename,		// log-time argument
 		 *executionTag,			// --tag -t
+		 redirectInput,			// --input -i
+		 *inputFilename,		// --input -i
+		 redirectOutput, 		// --output -o
+		 *outputFilename,		// --output -o
 		 verbose;				// --verbose -v
 		 // add case o
 };
@@ -116,16 +122,23 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
             arguments->trackTime = 1;
 			arguments->timeLogFilename = arg;
             break;
-        case 'i':
+        case 'c':
             arguments->testCaseName = arg;
             break;
+		case 'i':
+			arguments->redirectInput = 1;
+			arguments->inputFilename = arg;
+			break;
 		case 'v':
 			arguments->verbose = 1;
 			break;
 		case 't':
 			arguments->executionTag = arg;
 			break;
-		// case o
+		case 'o':
+			arguments->redirectOutput = 1;
+			arguments->outputFilename = arg;
+			break;
 
 		case ARGP_KEY_NO_ARGS:
 			argp_usage(state);
@@ -163,8 +176,11 @@ void initializeArguments(struct arguments* arguments)
 	arguments->testCaseName = NULL;
 	arguments->timeLogFilename = NULL;
 	arguments->executionTag = NULL;
+	arguments->redirectInput = 0;
+	arguments->inputFilename = NULL;
+	arguments->redirectOutput = 0;
+	arguments->outputFilename = NULL;
 	arguments->verbose = 0;
-	// add output
 }
 
 /* Definition of our argp parser */
@@ -183,6 +199,20 @@ void reduceStrings(char* string, char** strings)
 		strcat(string, " ");
 		strcat(string, strings[i]);
 	}
+}
+
+void composeOutputRedirectString(char* string, char* filename)
+{
+	strcat(string, " ");
+	strcat(string, ">> ");
+	strcat(string, filename);
+}
+
+void composeInputRedirectString(char* string, char* filename)
+{
+	strcat(string, " ");
+	strcat(string, "< ");
+	strcat(string, filename);
 }
 
 int main (int argc, char* argv[])
@@ -226,18 +256,51 @@ int main (int argc, char* argv[])
 		{
 			printf("Execution tag: %s\n", arguments.executionTag);
 		}
+		if (arguments.redirectInput)
+		{
+			printf("Redirect input from %s\n", arguments.inputFilename);
+		}
+		if (arguments.redirectOutput)
+		{
+			printf("Redirect output to %s\n", arguments.outputFilename);
+		}
 	}
 
 	reduceStrings(command, arguments.userProgram);
 
+/************************** PROGRAM START *******************************/
+
+	printf("\n");
+	printf("@ Virginia, a simple, configurable test framework\n");
+	printf("@ 2016-2016 by Adriano Belfort\n");
+	printf("@ Command: %s\n", command);
+
+	if (arguments.redirectInput)
+	{
+		printf("@ Redirect input from %s\n", arguments.inputFilename);
+		composeInputRedirectString(command, arguments.inputFilename);
+	}
+
+	if (arguments.redirectOutput)
+	{
+		printf("@ Redirect output to %s\n", arguments.outputFilename);
+		composeOutputRedirectString(command, arguments.outputFilename);
+	}
+
+	if (arguments.trackTime)
+	{
+		printf("@ Save execution time to %s\n", arguments.timeLogFilename);
+	}
+
 	if (arguments.verbose) printf("Complete input string: %s\n", command);
 
-	getTime(&start);
 
+	printf("\n");
+
+	getTime(&start);
     /****************************** SOLUTION *******************************/
 	system(command);
     /*************************** END OF SOLUTION ***************************/
-
 	getTime(&end);
 
 	if (arguments.trackTime)
@@ -250,7 +313,7 @@ int main (int argc, char* argv[])
 		{
 			if (arguments.executionTag)
 			{
-				fprintf(timeLogFile, "%s ", arguments.executionTag);
+				fprintf(timeLogFile, "%s: ", arguments.executionTag);
 			}
 			fprintf(timeLogFile, "%llu\n", timeElapsed);
 
@@ -261,6 +324,7 @@ int main (int argc, char* argv[])
 			fprintf(stderr, "Error: could not open log file %s\n", arguments.timeLogFilename);
 		}
 	}
+
 
     return 0;
 }
